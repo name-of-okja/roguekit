@@ -246,76 +246,92 @@ impl Iterator for AlphaLerp {
 mod tests {
     use crate::prelude::*;
     use crate::test_utils::*;
+    use rstest::rstest;
 
-    #[test]
-    fn rgb_lerp_iterates_from_start_to_end() {
-        let start = RGB::from_f32(0.0, 0.0, 0.0);
-        let end = RGB::from_f32(1.0, 1.0, 1.0);
-        let mut lerp = RgbLerp::new(start, end, 2);
-
-        assert_rgb_eq(lerp.next().unwrap(), 0.0, 0.0, 0.0);
-        assert_rgb_eq(lerp.next().unwrap(), 0.5, 0.5, 0.5);
-        assert_rgb_eq(lerp.next().unwrap(), 1.0, 1.0, 1.0);
-        assert!(lerp.next().is_none());
-    }
-
-    #[test]
-    fn hsv_lerp_iterates_from_start_to_end() {
-        let start = HSV::from_f32(0.0, 0.0, 0.0);
-        let end = HSV::from_f32(1.0, 1.0, 1.0);
-        let mut lerp = HsvLerp::new(start, end, 2);
-
-        assert_hsv_eq(lerp.next().unwrap(), 0.0, 0.0, 0.0);
-        assert_hsv_eq(lerp.next().unwrap(), 0.5, 0.5, 0.5);
-        assert_hsv_eq(lerp.next().unwrap(), 1.0, 1.0, 1.0);
-        assert!(lerp.next().is_none());
-    }
-
-    #[test]
-    fn rgba_lerp_iterates_from_start_to_end() {
-        let start = RGBA::from_f32(0.0, 0.0, 0.0, 0.0);
-        let end = RGBA::from_f32(1.0, 1.0, 1.0, 1.0);
-        let mut lerp = RgbaLerp::new(start, end, 2);
-
-        assert_rgba_eq(lerp.next().unwrap(), 0.0, 0.0, 0.0, 0.0);
-        assert_rgba_eq(lerp.next().unwrap(), 0.5, 0.5, 0.5, 0.5);
-        assert_rgba_eq(lerp.next().unwrap(), 1.0, 1.0, 1.0, 1.0);
-        assert!(lerp.next().is_none());
-    }
-
-    #[test]
-    fn alpha_lerp_iterates_alpha_only() {
-        let start = RGBA::from_f32(1.0, 0.0, 0.0, 0.0);
-        let end = RGBA::from_f32(0.0, 1.0, 0.0, 1.0);
-        let mut lerp = AlphaLerp::new(start, end, 2);
-
-        assert_rgba_eq(lerp.next().unwrap(), 1.0, 0.0, 0.0, 0.0);
-        assert_rgba_eq(lerp.next().unwrap(), 1.0, 0.0, 0.0, 0.5);
-        assert_rgba_eq(lerp.next().unwrap(), 1.0, 0.0, 0.0, 1.0);
-        assert!(lerp.next().is_none());
-    }
-
-    #[test]
-    fn rgb_lerp_len_returns_remaining_items() {
+    #[rstest]
+    #[case(1, vec![0.0, 1.0])]
+    #[case(2, vec![0.0, 0.5, 1.0])]
+    #[case(4, vec![0.0, 0.25, 0.5, 0.75, 1.0])]
+    fn rgb_lerp_iterates_from_start_to_end_and_tracks_len(
+        #[case] steps: usize,
+        #[case] expected_values: Vec<f32>,
+    ) {
         let mut lerp = RgbLerp::new(
             RGB::from_f32(0.0, 0.0, 0.0),
             RGB::from_f32(1.0, 1.0, 1.0),
-            2,
+            steps,
         );
 
-        assert_eq!(lerp.len(), 3);
+        for (index, expected) in expected_values.iter().enumerate() {
+            assert_eq!(lerp.len(), expected_values.len() - index);
+            assert_rgb_eq(lerp.next().unwrap(), *expected, *expected, *expected);
+        }
 
-        lerp.next();
-        assert_eq!(lerp.len(), 2);
-
-        lerp.next();
-        assert_eq!(lerp.len(), 1);
-
-        lerp.next();
         assert_eq!(lerp.len(), 0);
+        assert!(lerp.next().is_none());
+    }
 
-        lerp.next();
+    #[rstest]
+    #[case(1, vec![0.0, 1.0])]
+    #[case(2, vec![0.0, 0.5, 1.0])]
+    #[case(4, vec![0.0, 0.25, 0.5, 0.75, 1.0])]
+    fn hsv_lerp_iterates_from_start_to_end_and_tracks_len(
+        #[case] steps: usize,
+        #[case] expected_values: Vec<f32>,
+    ) {
+        let mut lerp = HsvLerp::new(
+            HSV::from_f32(0.0, 0.0, 0.0),
+            HSV::from_f32(1.0, 1.0, 1.0),
+            steps,
+        );
+
+        for (index, expected) in expected_values.iter().enumerate() {
+            assert_eq!(lerp.len(), expected_values.len() - index);
+            assert_hsv_eq(lerp.next().unwrap(), *expected, *expected, *expected);
+        }
+
         assert_eq!(lerp.len(), 0);
+        assert!(lerp.next().is_none());
+    }
+
+    #[rstest]
+    #[case(1, vec![0.0, 1.0])]
+    #[case(2, vec![0.0, 0.5, 1.0])]
+    #[case(4, vec![0.0, 0.25, 0.5, 0.75, 1.0])]
+    fn rgba_lerp_iterates_from_start_to_end(
+        #[case] steps: usize,
+
+        #[case] expected_values: Vec<f32>,
+    ) {
+        let mut lerp = RgbaLerp::new(
+            RGBA::from_f32(0.0, 0.0, 0.0, 0.0),
+            RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+            steps,
+        );
+
+        for expected in expected_values {
+            assert_rgba_eq(lerp.next().unwrap(), expected, expected, expected, expected);
+        }
+
+        assert!(lerp.next().is_none());
+    }
+
+    #[rstest]
+    #[case(1, vec![0.0, 1.0])]
+    #[case(2, vec![0.0, 0.5, 1.0])]
+    #[case(4, vec![0.0, 0.25, 0.5, 0.75, 1.0])]
+    fn alpha_lerp_iterates_alpha_only(#[case] steps: usize, #[case] expected_values: Vec<f32>) {
+        let mut lerp = AlphaLerp::new(
+            RGBA::from_f32(1.0, 0.0, 0.0, 0.0),
+            RGBA::from_f32(0.0, 1.0, 0.0, 1.0),
+            steps,
+        );
+
+        for expected_alpha in expected_values {
+            assert_rgba_eq(lerp.next().unwrap(), 1.0, 0.0, 0.0, expected_alpha);
+        }
+
+        assert!(lerp.next().is_none());
     }
 
     #[test]
